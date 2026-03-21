@@ -247,6 +247,8 @@ def publish_video():
         video.status = -1
         msg = '已保存为草稿'
     else:
+        if 'visibility' not in data or not data.get('visibility'):
+            video.visibility = 'public'
         video.status = 0
         msg = '发布成功，等待审核'
     

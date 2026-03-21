@@ -61,7 +61,7 @@
                 
                 <!-- 1. 发布按钮 (仅草稿状态显示) -->
                 <el-tooltip v-if="scope.row.status == -1" content="提交发布">
-                  <el-button type="success" size="small" :icon="Upload" @click="handlePublish(scope.row.id)" />
+                  <el-button type="success" size="small" :icon="Upload" @click="handlePublish(scope.row)" />
                 </el-tooltip>
 
                 <!-- 2. 撤回按钮 (仅审核中显示) -->
@@ -130,12 +130,15 @@ const formatTime = (seconds) => {
 };
 
 // 【新增】发布逻辑 (草稿 -> 审核中)
-const handlePublish = (id) => {
-  ElMessageBox.confirm('确定要提交该视频进行审核吗？', '发布视频', { type: 'success' })
+const handlePublish = (row) => {
+  const confirmMsg = row.visibility === 'public'
+    ? '确定要提交该视频进行审核吗？'
+    : '当前视频为私密，发布后将自动改为公开并进入审核，是否继续？';
+  ElMessageBox.confirm(confirmMsg, '发布视频', { type: 'success' })
     .then(async () => {
       try {
-        // 调用 publish 接口，不传 action 默认就是发布(转为status=0)
-        await publishVideo({ id }); 
+        // 发布默认设为公开
+        await publishVideo({ id: row.id, visibility: 'public' }); 
         ElMessage.success('已提交审核');
         loadData();
       } catch (e) {

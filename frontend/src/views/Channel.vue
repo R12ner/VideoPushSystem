@@ -81,7 +81,7 @@
         
         <div v-if="activeTab === 'videos'">
           <div v-if="videoList.length > 0" class="video-grid">
-            <div v-for="video in videoList" :key="video.id" class="video-card" @click="goToVideo(video.id)">
+            <div v-for="video in videoList" :key="video.id" class="video-card" @click="goToVideo(video)">
               <div class="thumbnail-wrapper">
                 <img :src="video.cover_url" class="thumbnail" />
                 <span class="duration">{{ formatDuration(video.duration) }}</span>
@@ -166,7 +166,7 @@
              </div>
              
              <div class="yt-pl-actions">
-                <el-button v-if="!isOwner && currentPlaylistVideos.length > 0" type="primary" round class="play-all-btn" @click="goToVideo(currentPlaylistVideos[0].id, currentPlaylist.id)">
+                <el-button v-if="!isOwner && currentPlaylistVideos.length > 0" type="primary" round class="play-all-btn" @click="goToVideo(currentPlaylistVideos[0], currentPlaylist.id)">
                    <el-icon style="margin-right:5px"><VideoPlay /></el-icon> 播放全部
                 </el-button>
 
@@ -184,7 +184,7 @@
 
         <div class="yt-pl-list-container">
           <div v-if="currentPlaylistVideos.length > 0">
-            <div v-for="(v, index) in currentPlaylistVideos" :key="v.id" class="yt-pl-item" @click="goToVideo(v.id, currentPlaylist.id)">
+            <div v-for="(v, index) in currentPlaylistVideos" :key="v.id" class="yt-pl-item" @click="goToVideo(v, currentPlaylist.id)">
               <div class="yt-pl-index">{{ index + 1 }}</div>
               <div class="yt-pl-thumb-box">
                 <img :src="v.cover_url" class="yt-pl-thumb">
@@ -418,7 +418,19 @@ const confirmRename = async () => {
   }
 };
 
-const goToVideo = (vid, pid) => { if(pid) router.push({ path: `/video/${vid}`, query: { list: pid } }); else router.push(`/video/${vid}`); };
+const goToVideo = (videoOrId, pid) => {
+  const isObj = videoOrId && typeof videoOrId === 'object';
+  const vid = isObj ? videoOrId.id : videoOrId;
+  const isShort = isObj ? videoOrId.is_short : false;
+
+  if (isShort) {
+    router.push(`/shorts/${vid}`);
+    return;
+  }
+
+  if (pid) router.push({ path: `/video/${vid}`, query: { list: pid } });
+  else router.push(`/video/${vid}`);
+};
 const addVideoToPl = async (vid) => { const res = await addVideoToPlaylist({ playlist_id: currentPlaylist.value.id, video_id: vid }); if (res.data.code === 200) { ElMessage.success(res.data.msg); addToPlVisible.value = false; const refreshRes = await getPlaylistVideos(currentPlaylist.value.id); currentPlaylistVideos.value = refreshRes.data.data; loadData(); } };
 
 const triggerAvatarSelect = () => avatarInput.value.click();
