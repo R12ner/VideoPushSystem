@@ -17,6 +17,14 @@ export function getVideoDetail(id) {
   });
 }
 
+export function generateAiSummary(videoId, refresh = false) {
+  return request({
+    url: `/video/${videoId}/ai_summary`,
+    method: 'post',
+    data: { refresh }
+  });
+}
+
 // 上传视频 (注意要设置 Content-Type)
 export function uploadVideo(formData) {
   return request({

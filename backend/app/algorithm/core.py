@@ -1,4 +1,3 @@
-import pandas as pd
 import random
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -58,50 +57,6 @@ class RecommendationEngine:
         videos = Video.query.filter_by(status=1, visibility='public').order_by(Video.views.desc()).limit(limit * 2).all()
         random.shuffle(videos)
         return [v.to_dict() for v in videos[:limit]]
-
-    # 个性化推荐：过滤已发布且公开
-    def recommend_by_history(self, user_id, limit=20):
-        logs = ActionLog.query.all()
-        if not logs: return self.get_hot_videos(limit)
-
-        data = [{'user_id': log.user_id, 'video_id': log.video_id, 'weight': log.weight} for log in logs]
-        df = pd.DataFrame(data)
-
-        if user_id not in df['user_id'].values: return self.get_hot_videos(limit)
-        
-        user_item_matrix = df.pivot_table(index='user_id', columns='video_id', values='weight', fill_value=0)
-        if user_item_matrix.shape[1] < 2: return self.get_hot_videos(limit)
-
-        item_similarity = cosine_similarity(user_item_matrix.T)
-        item_sim_df = pd.DataFrame(item_similarity, index=user_item_matrix.columns, columns=user_item_matrix.columns)
-
-        user_history = df[df['user_id'] == user_id]
-        watched_videos = user_history['video_id'].tolist()
-
-        score_series = pd.Series(dtype=float)
-        for video_id in watched_videos:
-            if video_id in item_sim_df.index:
-                similar_videos = item_sim_df[video_id] 
-                score_series = score_series.add(similar_videos, fill_value=0)
-
-        score_series = score_series.drop(watched_videos, errors='ignore')
-        recommended_ids = score_series.sort_values(ascending=False).head(limit * 2).index.tolist()
-
-        result_videos = []
-        for vid in recommended_ids:
-            v = Video.query.get(vid)
-            # 严格过滤
-            if v and v.status == 1 and v.visibility == 'public': 
-                result_videos.append(v.to_dict())
-            
-        if len(result_videos) < limit:
-            hots = self.get_hot_videos(limit - len(result_videos))
-            existing_ids = [v['id'] for v in result_videos]
-            for h in hots:
-                if h['id'] not in existing_ids: result_videos.append(h)
-        
-        random.shuffle(result_videos)
-        return result_videos[:limit]
 
     # 相关推荐：只从公开池中选择
     def recommend_similar_content(self, video_id, limit=10):

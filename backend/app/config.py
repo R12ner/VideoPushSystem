@@ -43,3 +43,8 @@ class Config:
     
     # 读取公钥
     ALIPAY_PUBLIC_KEY_STRING = os.getenv("ALIPAY_PUBLIC_KEY")
+
+    # AI 总结配置
+    ZHIPU_API_KEY = os.getenv("ZHIPU_API_KEY")
+    ZHIPU_MODEL = os.getenv("ZHIPU_MODEL", "glm-4-flash-250414")
+    ZHIPU_API_URL = os.getenv("ZHIPU_API_URL", "https://open.bigmodel.cn/api/paas/v4/chat/completions")

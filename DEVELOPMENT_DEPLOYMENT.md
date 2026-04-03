@@ -126,6 +126,10 @@ ALIPAY_PUBLIC_KEY=...
 ALIPAY_PRIVATE_KEY=...
 ALIPAY_NOTIFY_URL=...
 ALIPAY_RETURN_URL=...
+
+ZHIPU_API_KEY=...
+ZHIPU_MODEL=glm-4-flash-250414
+ZHIPU_API_URL=https://open.bigmodel.cn/api/paas/v4/chat/completions
 ```
 
 ### 4.2 Docker Compose 环境变量
@@ -143,6 +147,9 @@ DB_PASSWORD=123456
 SITE_DOMAIN=https://你的域名
 
 CLOUDFLARE_TUNNEL_TOKEN=...
+ZHIPU_API_KEY=...
+ZHIPU_MODEL=glm-4-flash-250414
+ZHIPU_API_URL=https://open.bigmodel.cn/api/paas/v4/chat/completions
 ```
 
 ---
@@ -339,4 +346,3 @@ visibility = public（公开）
 - `.env` 中包含密钥，建议只保留 `.env.example` 并在部署时注入真实值。  
 - 支付宝私钥、邮箱密码等敏感数据不要提交到 Git。  
 - 线上部署时建议使用反向代理（Nginx/1Panel）并开启 HTTPS。
-

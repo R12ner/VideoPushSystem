@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from sqlalchemy import func
 from app import db
 from app.models import ActionLog, Video
+from app.algorithm.core import recommender
 from app.services.recall_service import recall_service
 
 recommend_bp = Blueprint('recommend', __name__, url_prefix='/api/recommend')
@@ -105,3 +106,12 @@ def home_recommend():
         'source': source
     })
 
+
+@recommend_bp.route('/related/<int:video_id>', methods=['GET'])
+def related_recommend(video_id):
+    video = Video.query.get(video_id)
+    if not video:
+        return jsonify({'code': 404, 'msg': '视频不存在'}), 404
+
+    recommendations = recommender.recommend_similar_content(video_id, limit=12)
+    return jsonify({'code': 200, 'data': recommendations})

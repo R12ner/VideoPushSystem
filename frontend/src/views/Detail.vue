@@ -80,6 +80,53 @@
                 </div>
                 <div class="desc-text">{{ video.description || '暂无简介' }}</div>
               </div>
+              
+              <div v-if="!video.is_short" class="ai-summary-card">
+                <div class="ai-summary-head">
+                  <div class="ai-summary-title-wrap">
+                    <div class="ai-summary-icon">
+                      <el-icon><MagicStick /></el-icon>
+                    </div>
+                    <div>
+                      <div class="ai-summary-title">AI 总结</div>
+                      <div class="ai-summary-subtitle">优先使用字幕生成，没有字幕时回退到标题、简介和标签。</div>
+                    </div>
+                  </div>
+                  <div class="ai-summary-actions">
+                    <button
+                      v-if="hasAiSummary"
+                      class="apple-ai-btn secondary"
+                      :disabled="aiSummaryLoading"
+                      @click="loadAiSummary(true)"
+                    >
+                      <el-icon><RefreshRight /></el-icon>
+                      <span>重新生成</span>
+                    </button>
+                    <button
+                      class="apple-ai-btn primary"
+                      :disabled="aiSummaryLoading"
+                      @click="loadAiSummary(false)"
+                    >
+                      <el-icon v-if="!aiSummaryLoading"><MagicStick /></el-icon>
+                      <el-icon v-else class="is-loading"><Loading /></el-icon>
+                      <span>{{ aiSummaryLoading ? '生成中...' : (hasAiSummary ? '查看总结' : '生成总结') }}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div v-if="aiSummaryError" class="ai-summary-error">{{ aiSummaryError }}</div>
+                <div v-else-if="aiSummaryLoading" class="ai-summary-loading">
+                  <el-skeleton :rows="4" animated />
+                </div>
+                <div v-else-if="hasAiSummary" class="ai-summary-content">
+                  <div class="ai-summary-meta-row">
+                    <span class="ai-badge">{{ aiSummaryMeta.source === 'subtitle' ? '字幕摘要' : '元数据摘要' }}</span>
+                    <span class="ai-badge subtle" v-if="aiSummaryMeta.cached">已缓存</span>
+                    <span class="ai-summary-time" v-if="aiSummaryMeta.generated_at">{{ aiSummaryMeta.generated_at }}</span>
+                  </div>
+                  <div class="ai-summary-text">{{ aiSummary }}</div>
+                </div>
+              </div>
             </div>
 
             <!-- 3. 评论区 -->
@@ -245,14 +292,14 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
-import { getVideoDetail, postAction, checkFavStatus } from '../api/video';
+import { getVideoDetail, postAction, checkFavStatus, generateAiSummary } from '../api/video';
 import { getRelatedVideos } from '../api/recommend';
 import { getComments, sendComment, likeComment, pinComment, checkInteractionStatus } from '../api/interaction';
 import { toggleFollow, getChannelInfo } from '../api/user';
 import { getPlaylistVideos } from '../api/playlist'; 
 import { getVideosByIds } from '../api/video';
 import { ElMessage } from 'element-plus';
-import { Star, StarFilled, Sort, CaretBottom, CaretTop, MoreFilled, Top, VideoPlay, Edit } from '@element-plus/icons-vue';
+import { Star, StarFilled, Sort, CaretBottom, CaretTop, MoreFilled, Top, VideoPlay, Edit, MagicStick, RefreshRight, Loading } from '@element-plus/icons-vue';
 import CustomVideoPlayer from '../components/CustomVideoPlayer.vue';
 import VideoEditModal from '../components/VideoEditModal.vue';
 import VerificationBadge from '../components/VerificationBadge.vue';
@@ -268,6 +315,10 @@ const endScreenVideos = ref([]);
 const currentLikes = ref(0);
 const interaction = ref({ is_fav: false, is_like: false });
 const channelStats = ref({ fans: 0, is_following: false });
+const aiSummary = ref('');
+const aiSummaryMeta = ref({});
+const aiSummaryLoading = ref(false);
+const aiSummaryError = ref('');
 
 const comments = ref([]);
 const commentText = ref('');
@@ -283,6 +334,7 @@ const currentVideoTime = ref(0); // 跟踪当前播放时间
 let lastSaveTime = Date.now();
 
 const editModalRef = ref(null);
+const hasAiSummary = computed(() => aiSummary.value.trim().length > 0);
 
 const isOwner = computed(() => {
   if (!video.value || !userStore.userInfo) return false;
@@ -293,6 +345,10 @@ const loadPageData = async (videoId) => {
   // 重置状态
   interaction.value = { is_fav: false, is_like: false, last_progress: 0 };
   channelStats.value.is_following = false;
+  aiSummary.value = '';
+  aiSummaryMeta.value = {};
+  aiSummaryLoading.value = false;
+  aiSummaryError.value = '';
   try {
     const res = await getVideoDetail(videoId);
     video.value = res.data.data;
@@ -366,6 +422,28 @@ const loadPageData = async (videoId) => {
     }
   }
 };
+
+const loadAiSummary = async (forceRefresh = false) => {
+  if (!video.value || video.value.is_short || aiSummaryLoading.value) return;
+
+  aiSummaryLoading.value = true;
+  aiSummaryError.value = '';
+
+  try {
+    const res = await generateAiSummary(video.value.id, forceRefresh);
+    if (res.data.code === 200) {
+      aiSummary.value = res.data.data.summary || '';
+      aiSummaryMeta.value = res.data.data || {};
+    } else {
+      aiSummaryError.value = res.data.msg || 'AI 总结生成失败';
+    }
+  } catch (e) {
+    aiSummaryError.value = e.response?.data?.msg || 'AI 总结生成失败，请稍后重试';
+  } finally {
+    aiSummaryLoading.value = false;
+  }
+};
+
 const goToVideo = (vid, playlistId = null) => {
   // 切换视频前保存当前视频进度
   if (video.value && currentVideoTime.value > 0) {
@@ -490,6 +568,8 @@ onBeforeUnmount(() => {
   .detail-container { padding: 0 10px; }
   .el-col { width: 100% !important; flex: 0 0 100%; max-width: 100%; }
   .sidebar-content { margin-top: 20px; }
+  .ai-summary-head { flex-direction: column; }
+  .ai-summary-actions { justify-content: flex-start; }
 }
 
 .info-section { padding: 20px 0; }
@@ -511,6 +591,148 @@ onBeforeUnmount(() => {
 .description-box { background-color: #f2f2f2; border-radius: 12px; padding: 12px; margin-top: 10px; font-size: 14px; cursor: pointer; }
 .desc-meta { font-weight: 600; color: #0f0f0f; margin-bottom: 8px; }
 .desc-text { color: #0f0f0f; line-height: 20px; white-space: pre-wrap; }
+
+.ai-summary-card {
+  margin-top: 16px;
+  padding: 18px 20px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(246, 247, 249, 0.96));
+  border: 1px solid rgba(15, 15, 15, 0.08);
+  box-shadow: 0 10px 30px rgba(15, 15, 15, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+.ai-summary-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.ai-summary-title-wrap {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.ai-summary-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f7f7f8, #e9edf3);
+  color: #111827;
+  border: 1px solid rgba(17, 24, 39, 0.06);
+}
+
+.ai-summary-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.ai-summary-subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #6b7280;
+}
+
+.ai-summary-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.apple-ai-btn {
+  height: 38px;
+  border: none;
+  border-radius: 999px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.apple-ai-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.apple-ai-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.apple-ai-btn.primary {
+  color: #fff;
+  background: linear-gradient(135deg, #111827, #374151);
+  box-shadow: 0 10px 20px rgba(17, 24, 39, 0.16);
+}
+
+.apple-ai-btn.secondary {
+  color: #111827;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(17, 24, 39, 0.08);
+}
+
+.ai-summary-loading,
+.ai-summary-content,
+.ai-summary-error {
+  margin-top: 16px;
+}
+
+.ai-summary-error {
+  color: #c2410c;
+  background: rgba(255, 247, 237, 0.95);
+  border: 1px solid rgba(251, 146, 60, 0.25);
+  border-radius: 16px;
+  padding: 12px 14px;
+  font-size: 13px;
+}
+
+.ai-summary-meta-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.08);
+  color: #111827;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ai-badge.subtle {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(17, 24, 39, 0.08);
+}
+
+.ai-summary-time {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.ai-summary-text {
+  white-space: pre-wrap;
+  color: #111827;
+  line-height: 1.75;
+  font-size: 14px;
+}
 
 .comment-section { margin-top: 24px; }
 .comment-header { display: flex; align-items: center; gap: 30px; margin-bottom: 24px; }

@@ -8,6 +8,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app
 from werkzeug.utils import secure_filename
 from ..models import Video, User, ActionLog, Follow, db, Comment, playlist_video
+from ..services.ai_summary_service import ai_summary_service
 from flasgger import swag_from
 from sqlalchemy import func
 
@@ -17,6 +18,28 @@ ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def can_access_video(video):
+    if video.status == 1 and video.visibility != 'private':
+        return True
+
+    token = request.headers.get('Authorization')
+    if not token:
+        return False
+
+    try:
+        if token.startswith('Bearer '):
+            token = token.split(' ')[1]
+        payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+        current_user_id = payload.get('user_id')
+        current_user = User.query.get(current_user_id)
+        return bool(
+            current_user
+            and (str(current_user.id) == str(video.uploader_id) or current_user.is_admin)
+        )
+    except Exception:
+        return False
 
 def generate_auto_thumbnails(video_path, output_folder, file_prefix):
     thumbnails = []
@@ -317,19 +340,8 @@ def get_videos_by_ids():
 def get_video_detail(video_id):
     video = Video.query.get(video_id)
     if not video: return jsonify({'code': 404, 'msg': '视频不存在'}), 404
-    if video.status != 1 or video.visibility == 'private':
-        has_permission = False
-        token = request.headers.get('Authorization')
-        if token:
-            try:
-                if token.startswith('Bearer '): token = token.split(' ')[1]
-                payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-                current_user_id = payload.get('user_id')
-                current_user = User.query.get(current_user_id)
-                if current_user and (str(current_user.id) == str(video.uploader_id) or current_user.is_admin):
-                    has_permission = True
-            except Exception: pass
-        if not has_permission: return jsonify({'code': 403, 'msg': '该视频为私享视频或已下架'}), 403
+    if not can_access_video(video):
+        return jsonify({'code': 403, 'msg': '该视频为私享视频或已下架'}), 403
     video.views += 1
     db.session.commit()
     likes_count = ActionLog.query.filter_by(video_id=video_id, action_type='like').count()
@@ -345,6 +357,30 @@ def get_video_detail(video_id):
     
     video_data['likes'] = likes_count
     return jsonify({'code': 200, 'data': video_data})
+
+
+@video_bp.route('/<int:video_id>/ai_summary', methods=['POST'])
+def generate_ai_summary(video_id):
+    video = Video.query.get(video_id)
+    if not video:
+        return jsonify({'code': 404, 'msg': '视频不存在'}), 404
+    if not can_access_video(video):
+        return jsonify({'code': 403, 'msg': '无权访问该视频'}), 403
+    if video.is_short:
+        return jsonify({'code': 400, 'msg': '短视频暂不支持 AI 总结'}), 400
+
+    payload = request.get_json(silent=True) or {}
+    force_refresh = bool(payload.get('refresh'))
+
+    try:
+        summary_data = ai_summary_service.summarize_video(video, force_refresh=force_refresh)
+    except ValueError as exc:
+        return jsonify({'code': 400, 'msg': str(exc)}), 400
+    except Exception as exc:
+        print(f"AI Summary Error: {exc}")
+        return jsonify({'code': 500, 'msg': 'AI 总结生成失败'}), 500
+
+    return jsonify({'code': 200, 'data': summary_data})
 
 @video_bp.route('/delete/<int:video_id>', methods=['DELETE'])
 def delete_video(video_id):

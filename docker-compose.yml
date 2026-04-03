@@ -33,6 +33,9 @@ services:
       DB_USER: ${DB_USER}       # root
       DB_PASSWORD: ${DB_PASSWORD}
       SITE_DOMAIN: ${SITE_DOMAIN}
+      ZHIPU_API_KEY: ${ZHIPU_API_KEY}
+      ZHIPU_MODEL: ${ZHIPU_MODEL}
+      ZHIPU_API_URL: ${ZHIPU_API_URL}
     volumes:
       - ./backend/app/static:/app/app/static
     networks:

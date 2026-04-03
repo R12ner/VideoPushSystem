@@ -17,7 +17,7 @@
         <div class="video-list-wrapper search-mode">
           <div v-for="video in videoList" :key="video.id" 
                class="video-card list-card hover-effect" 
-               @click="goToDetail(video.id)"
+               @click="goToVideo(video)"
                @mouseenter="handleMouseEnter(video, 'start')"
                @mouseleave="handleMouseLeave"
           >
@@ -58,7 +58,7 @@
          <div class="video-grid grid-3-cols" style="margin-top: 20px;">
             <div v-for="video in categoryList" :key="video.id" 
                  class="video-card horizontal-card hover-effect" 
-                 @click="goToDetail(video.id)"
+                 @click="goToVideo(video)"
                  @mouseenter="handleMouseEnter(video, 'start')"
                  @mouseleave="handleMouseLeave"
             >
@@ -107,7 +107,7 @@
           <div class="video-grid grid-3-cols">
             <div v-for="video in discoverList" :key="video.id" 
                  class="video-card horizontal-card hover-effect" 
-                 @click="goToDetail(video.id)"
+                 @click="goToVideo(video)"
                  @mouseenter="handleMouseEnter(video, 'start')"
                  @mouseleave="handleMouseLeave"
             >
@@ -145,7 +145,7 @@
           <div class="video-grid grid-5-cols">
              <div v-for="video in shortsList" :key="'shorts-'+video.id" 
                   class="video-card vertical-card hover-effect" 
-                  @click="goToShorts(video.id)"
+                  @click="goToVideo(video)"
                   @mouseenter="handleMouseEnter(video, 'start')"
                   @mouseleave="handleMouseLeave"
              >
@@ -177,7 +177,7 @@
           <div class="video-grid grid-3-cols">
              <div v-for="video in mixList" :key="'mix-'+video.id" 
                   class="video-card horizontal-card hover-effect" 
-                  @click="goToDetail(video.id)"
+                  @click="goToVideo(video)"
                   @mouseenter="handleMouseEnter(video, 'start')"
                   @mouseleave="handleMouseLeave"
              >
@@ -212,7 +212,7 @@
           <div class="video-grid grid-3-cols">
              <div v-for="video in historyList" :key="'hist-'+video.id" 
                   class="video-card horizontal-card hover-effect" 
-                  @click="goToDetail(video.id)"
+                  @click="goToVideo(video)"
                   @mouseenter="handleMouseEnter(video, 'continue')"
                   @mouseleave="handleMouseLeave"
              >
@@ -389,8 +389,14 @@ const changeCategory = async (cat) => {
   }
 };
 
-const goToDetail = (id) => { router.push(`/video/${id}`); };
-const goToShorts = (id) => { router.push(`/shorts/${id}`); }
+const goToVideo = (videoOrId) => {
+  const video = typeof videoOrId === 'object' ? videoOrId : { id: videoOrId, is_short: false };
+  if (video.is_short) {
+    router.push(`/shorts/${video.id}`);
+    return;
+  }
+  router.push(`/video/${video.id}`);
+};
 
 const handleMouseEnter = async (video, mode) => {
   hoverVideoId.value = video.id;
