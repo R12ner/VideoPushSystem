@@ -48,3 +48,4 @@ class Config:
     ZHIPU_API_KEY = os.getenv("ZHIPU_API_KEY")
     ZHIPU_MODEL = os.getenv("ZHIPU_MODEL", "glm-4-flash-250414")
     ZHIPU_API_URL = os.getenv("ZHIPU_API_URL", "https://open.bigmodel.cn/api/paas/v4/chat/completions")
+    ZHIPU_VISION_MODEL = os.getenv("ZHIPU_VISION_MODEL", "glm-4v-flash")

@@ -89,7 +89,7 @@
                     </div>
                     <div>
                       <div class="ai-summary-title">AI 总结</div>
-                      <div class="ai-summary-subtitle">优先使用字幕生成，没有字幕时回退到标题、简介和标签。</div>
+                      <div class="ai-summary-subtitle">一键提炼视频重点，快速掌握内容脉络。</div>
                     </div>
                   </div>
                   <div class="ai-summary-actions">
@@ -594,12 +594,30 @@ onBeforeUnmount(() => {
 
 .ai-summary-card {
   margin-top: 16px;
-  padding: 18px 20px;
-  border-radius: 24px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(246, 247, 249, 0.96));
-  border: 1px solid rgba(15, 15, 15, 0.08);
-  box-shadow: 0 10px 30px rgba(15, 15, 15, 0.08);
-  backdrop-filter: blur(14px);
+  padding: 20px 22px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.95), rgba(247, 249, 252, 0.92) 45%, rgba(240, 244, 248, 0.96)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 246, 249, 0.98));
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow:
+    0 18px 40px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(18px);
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-summary-card::before {
+  content: "";
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(148, 163, 184, 0.14), rgba(148, 163, 184, 0));
+  pointer-events: none;
 }
 
 .ai-summary-head {
@@ -616,28 +634,32 @@ onBeforeUnmount(() => {
 }
 
 .ai-summary-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f7f7f8, #e9edf3);
-  color: #111827;
-  border: 1px solid rgba(17, 24, 39, 0.06);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(226, 232, 240, 0.9));
+  color: #0f172a;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 8px 18px rgba(15, 23, 42, 0.08);
 }
 
 .ai-summary-title {
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 700;
-  color: #111827;
+  color: #0f172a;
+  letter-spacing: -0.01em;
 }
 
 .ai-summary-subtitle {
-  margin-top: 4px;
+  margin-top: 5px;
   font-size: 13px;
   line-height: 1.5;
-  color: #6b7280;
+  color: #64748b;
 }
 
 .ai-summary-actions {
@@ -672,14 +694,15 @@ onBeforeUnmount(() => {
 
 .apple-ai-btn.primary {
   color: #fff;
-  background: linear-gradient(135deg, #111827, #374151);
-  box-shadow: 0 10px 20px rgba(17, 24, 39, 0.16);
+  background: linear-gradient(135deg, #111827, #1f2937 55%, #374151);
+  box-shadow: 0 12px 22px rgba(17, 24, 39, 0.18);
 }
 
 .apple-ai-btn.secondary {
-  color: #111827;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(17, 24, 39, 0.08);
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .ai-summary-loading,
@@ -690,10 +713,10 @@ onBeforeUnmount(() => {
 
 .ai-summary-error {
   color: #c2410c;
-  background: rgba(255, 247, 237, 0.95);
+  background: rgba(255, 247, 237, 0.98);
   border: 1px solid rgba(251, 146, 60, 0.25);
-  border-radius: 16px;
-  padding: 12px 14px;
+  border-radius: 18px;
+  padding: 13px 15px;
   font-size: 13px;
 }
 
@@ -711,8 +734,8 @@ onBeforeUnmount(() => {
   height: 26px;
   padding: 0 10px;
   border-radius: 999px;
-  background: rgba(17, 24, 39, 0.08);
-  color: #111827;
+  background: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
   font-size: 12px;
   font-weight: 600;
 }
@@ -724,14 +747,19 @@ onBeforeUnmount(() => {
 
 .ai-summary-time {
   font-size: 12px;
-  color: #6b7280;
+  color: #64748b;
 }
 
 .ai-summary-text {
   white-space: pre-wrap;
-  color: #111827;
-  line-height: 1.75;
+  color: #0f172a;
+  line-height: 1.82;
   font-size: 14px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .comment-section { margin-top: 24px; }

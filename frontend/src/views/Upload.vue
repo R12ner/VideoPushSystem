@@ -107,7 +107,7 @@
                    <el-tag type="success">已添加字幕</el-tag>
                    <el-button link type="danger" @click="form.subtitle_url = ''">删除</el-button>
                 </div>
-                <input type="file" ref="subtitleInput" accept=".vtt,.srt" style="display:none" @change="handleSubtitleSelected" />
+                <input type="file" ref="subtitleInput" accept=".vtt,.srt,.json" style="display:none" @change="handleSubtitleSelected" />
               </div>
               
               <!-- 片尾画面 -->

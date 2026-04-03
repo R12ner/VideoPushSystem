@@ -234,21 +234,24 @@ def upload_subtitle():
     file = request.files['file']
     
     # 允许字幕格式
-    if file and (file.filename.endswith('.vtt') or file.filename.endswith('.srt')):
-        filename = secure_filename(file.filename)
+    original_name = file.filename or ''
+    suffix = os.path.splitext(original_name)[1].lower()
+
+    if file and suffix in {'.vtt', '.srt', '.json'}:
+        safe_stem = secure_filename(os.path.splitext(original_name)[0]) or 'subtitle'
         timestamp = int(time.time())
         static_folder = os.path.join(os.getcwd(), 'app/static')
         subtitle_folder = os.path.join(static_folder, 'subtitles')
         os.makedirs(subtitle_folder, exist_ok=True)
         
-        new_name = f"{timestamp}_{filename}"
+        new_name = f"{timestamp}_{safe_stem}{suffix}"
         save_path = os.path.join(subtitle_folder, new_name)
         file.save(save_path)
         
         url = f"/static/subtitles/{new_name}"
         return jsonify({'code': 200, 'msg': '字幕上传成功', 'url': url})
         
-    return jsonify({'code': 400, 'msg': '仅支持 .vtt 或 .srt 格式'})
+    return jsonify({'code': 400, 'msg': '仅支持 .vtt、.srt 或 .json 格式'})
 
 @video_bp.route('/publish', methods=['POST'])
 @swag_from('../docs/video/publish.yml') # <--- 修改

@@ -83,12 +83,16 @@ pnpm-debug.log*
 backend/app/static/uploads/*
 backend/app/static/covers/*
 backend/app/static/avatars/*
+backend/app/static/subtitles/*
+backend/app/static/ai_summaries/*
 backend/app/static/temp/*
 
 # 但保留文件夹本身
 !backend/app/static/uploads/.gitkeep
 !backend/app/static/covers/.gitkeep
 !backend/app/static/avatars/.gitkeep
+!backend/app/static/subtitles/.gitkeep
+!backend/app/static/ai_summaries/.gitkeep
 !backend/app/static/temp/.gitkeep
 
 # ==========================

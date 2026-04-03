@@ -36,6 +36,7 @@ services:
       ZHIPU_API_KEY: ${ZHIPU_API_KEY}
       ZHIPU_MODEL: ${ZHIPU_MODEL}
       ZHIPU_API_URL: ${ZHIPU_API_URL}
+      ZHIPU_VISION_MODEL: ${ZHIPU_VISION_MODEL}
     volumes:
       - ./backend/app/static:/app/app/static
     networks:

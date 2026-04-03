@@ -68,7 +68,7 @@
                   <el-tag type="success" size="small">已添加</el-tag>
                   <el-button link type="danger" size="small" @click="form.subtitle_url = ''">删除</el-button>
               </div>
-              <input type="file" ref="subtitleInput" accept=".vtt,.srt" style="display:none" @change="handleSubtitleSelected" />
+              <input type="file" ref="subtitleInput" accept=".vtt,.srt,.json" style="display:none" @change="handleSubtitleSelected" />
             </div>
 
             <!-- 片尾画面 -->
