@@ -1,73 +1,77 @@
 <template>
-  <el-card>
+  <el-card class="page-card">
     <template #header>
       <div class="card-header">
-        <!-- Apple Style Segmented Control -->
-        <div class="segmented-control">
-          <div 
-            class="segment-item" 
-            :class="{ active: viewMode === 'users' }"
-            @click="switchMode('users')"
-          >
-            Users
-          </div>
-          <div 
-            class="segment-item" 
-            :class="{ active: viewMode === 'requests' }"
-            @click="switchMode('requests')"
-          >
-            Reset Requests
-          </div>
+        <div>
+          <div class="page-title">用户管理</div>
+          <div class="page-subtitle">查看用户状态与密码重置申请</div>
         </div>
 
-        <el-input 
-          v-if="viewMode === 'users'"
-          v-model="searchQuery" 
-          placeholder="搜索用户" 
-          prefix-icon="Search" 
-          class="apple-search" 
-          clearable 
-        />
+        <div class="toolbar">
+          <div class="segmented-control">
+            <button
+              class="segment-item"
+              :class="{ active: viewMode === 'users' }"
+              @click="switchMode('users')"
+            >
+              用户列表
+            </button>
+            <button
+              class="segment-item"
+              :class="{ active: viewMode === 'requests' }"
+              @click="switchMode('requests')"
+            >
+              重置申请
+            </button>
+          </div>
+
+          <el-input
+            v-if="viewMode === 'users'"
+            v-model="searchQuery"
+            placeholder="搜索用户名或邮箱"
+            :prefix-icon="Search"
+            class="apple-search"
+            clearable
+          />
+        </div>
       </div>
     </template>
-    
-    <!-- User List Table -->
+
     <el-table v-if="viewMode === 'users'" :data="filteredData">
       <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column label="头像" width="80">
+      <el-table-column label="头像" width="88">
         <template #default="scope">
-          <el-avatar :src="scope.row.avatar" :size="36" />
+          <el-avatar :src="scope.row.avatar" :size="38" />
         </template>
       </el-table-column>
-      <el-table-column prop="username" label="用户名" min-width="120" />
-      <el-table-column prop="email" label="邮箱" min-width="180" />
-      <el-table-column label="状态" width="100">
+      <el-table-column prop="username" label="用户名" min-width="140" />
+      <el-table-column prop="email" label="邮箱" min-width="220" />
+      <el-table-column label="状态" width="120">
         <template #default="scope">
-          <el-tag v-if="scope.row.is_banned" type="danger" effect="plain" round>封禁中</el-tag>
+          <el-tag v-if="scope.row.is_banned" type="danger" effect="plain" round>已封禁</el-tag>
           <el-tag v-else type="success" effect="plain" round>正常</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="120" align="right">
+      <el-table-column label="操作" width="150" align="right">
         <template #default="scope">
-          <el-button 
+          <el-button
             v-if="!scope.row.is_admin"
-            type="primary" 
+            type="primary"
             link
             @click="handleBan(scope.row)"
           >
-            {{ scope.row.is_banned ? '解封' : '封禁' }}
+            {{ scope.row.is_banned ? '解除封禁' : '封禁用户' }}
           </el-button>
-          <span v-else style="color:#999; font-size:12px">管理员</span>
+          <span v-else class="muted-text">管理员账号</span>
         </template>
       </el-table-column>
     </el-table>
 
-    <!-- Reset Requests Table -->
     <el-table v-else :data="requestsData">
       <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="username" label="用户名" width="150" />
-      <el-table-column prop="email" label="邮箱" min-width="200" />
-      <el-table-column prop="created_at" label="申请时间" width="180" />
+      <el-table-column prop="username" label="用户名" width="160" />
+      <el-table-column prop="email" label="邮箱" min-width="220" />
+      <el-table-column prop="created_at" label="申请时间" width="190" />
       <el-table-column label="状态" width="120">
         <template #default="scope">
           <el-tag v-if="scope.row.status === 'pending'" type="warning" effect="plain" round>待处理</el-tag>
@@ -77,20 +81,19 @@
       </el-table-column>
       <el-table-column label="操作" width="150" align="right">
         <template #default="scope">
-          <el-button 
+          <el-button
             v-if="scope.row.status === 'pending'"
-            type="primary" 
+            type="primary"
             link
             @click="handleSendEmail(scope.row)"
             :loading="emailLoading === scope.row.id"
           >
             发送重置邮件
           </el-button>
-          <span v-else style="color:#999; font-size:12px">--</span>
+          <span v-else class="muted-text">无需处理</span>
         </template>
       </el-table-column>
     </el-table>
-
   </el-card>
 </template>
 
@@ -100,7 +103,7 @@ import { getAdminUsers, banUser, getResetRequests, sendResetEmail } from '../../
 import { ElMessage } from 'element-plus';
 import { Search } from '@element-plus/icons-vue';
 
-const viewMode = ref('users'); // 'users' or 'requests'
+const viewMode = ref('users');
 const tableData = ref([]);
 const requestsData = ref([]);
 const searchQuery = ref('');
@@ -108,32 +111,35 @@ const emailLoading = ref(null);
 
 const loadUsers = async () => {
   const res = await getAdminUsers();
-  tableData.value = res.data.data;
+  tableData.value = res.data.data || [];
 };
 
 const loadRequests = async () => {
   const res = await getResetRequests();
-  requestsData.value = res.data.data;
+  requestsData.value = res.data.data || [];
 };
 
 const switchMode = (mode) => {
   viewMode.value = mode;
-  if (mode === 'users') loadUsers();
-  else loadRequests();
+  if (mode === 'users') {
+    loadUsers();
+  } else {
+    loadRequests();
+  }
 };
 
 const filteredData = computed(() => {
   if (!searchQuery.value) return tableData.value;
-  const q = searchQuery.value.toLowerCase();
-  return tableData.value.filter(u => 
-    u.username.toLowerCase().includes(q) || 
-    (u.email && u.email.toLowerCase().includes(q))
+  const query = searchQuery.value.toLowerCase();
+  return tableData.value.filter((user) =>
+    user.username?.toLowerCase().includes(query) ||
+    user.email?.toLowerCase().includes(query)
   );
 });
 
 const handleBan = async (row) => {
-  const res = await banUser(row.id);
-  ElMessage.success(res.data.msg);
+  await banUser(row.id);
+  ElMessage.success(row.is_banned ? '已解除封禁' : '已封禁用户');
   loadUsers();
 };
 
@@ -142,12 +148,12 @@ const handleSendEmail = async (row) => {
   try {
     const res = await sendResetEmail(row.id);
     if (res.data.code === 200) {
-      ElMessage.success('邮件已发送');
+      ElMessage.success('重置邮件已发送');
       loadRequests();
     } else {
-      ElMessage.error(res.data.msg);
+      ElMessage.error(res.data.msg || '发送失败');
     }
-  } catch (e) {
+  } catch (error) {
     ElMessage.error('发送失败');
   } finally {
     emailLoading.value = null;
@@ -158,44 +164,79 @@ onMounted(() => loadUsers());
 </script>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.page-card {
+  overflow: hidden;
 }
 
-/* Apple Style Segmented Control */
-.segmented-control {
-  background: #E5E5EA;
-  padding: 2px;
-  border-radius: 8px;
+.card-header {
   display: flex;
-  width: fit-content;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.page-subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #667085;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.segmented-control {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
 }
 
 .segment-item {
-  padding: 6px 16px;
+  border: none;
+  background: transparent;
+  color: #667085;
+  padding: 10px 16px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
+  border-radius: 999px;
   cursor: pointer;
-  border-radius: 6px;
-  color: #636366;
   transition: all 0.2s ease;
 }
 
 .segment-item.active {
-  background: #FFFFFF;
-  color: #000;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
 }
 
 .apple-search {
-  width: 200px;
+  width: 240px;
 }
 
-:deep(.apple-search .el-input__wrapper) {
-  border-radius: 99px;
-  background-color: #F5F5F7;
-  box-shadow: none !important;
+.muted-text {
+  font-size: 12px;
+  color: #98a2b3;
+}
+
+@media (max-width: 900px) {
+  .card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .apple-search {
+    width: 100%;
+  }
 }
 </style>

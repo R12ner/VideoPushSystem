@@ -14,6 +14,13 @@ export function sendComment(data) {
   return request({ url: '/interaction/comment/add', method: 'post', data });
 }
 // 评论点赞 (新增 userId)
+export function deleteComment(commentId, userId) {
+  return request({
+    url: '/interaction/comment/delete',
+    method: 'post',
+    data: { comment_id: commentId, user_id: userId }
+  });
+}
 export function likeComment(commentId, userId) {
   return request({ 
     url: '/interaction/comment/like', 

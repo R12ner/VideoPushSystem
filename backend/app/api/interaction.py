@@ -7,6 +7,19 @@ from .notification import create_notification
 
 interaction_bp = Blueprint('interaction', __name__)
 
+
+def _collect_comment_tree_ids(comment_id):
+    comment_ids = []
+    stack = [comment_id]
+
+    while stack:
+        current_id = stack.pop()
+        comment_ids.append(current_id)
+        child_ids = [item.id for item in Comment.query.filter_by(parent_id=current_id).all()]
+        stack.extend(child_ids)
+
+    return comment_ids
+
 # --- 评论功能 (升级版) ---
 
 @interaction_bp.route('/comments', methods=['GET'])
@@ -114,6 +127,37 @@ def add_comment():
             
     db.session.commit()
     return jsonify({'code': 200, 'msg': '评论成功'})
+
+@interaction_bp.route('/comment/delete', methods=['POST'])
+def delete_comment():
+    data = request.get_json() or {}
+    comment_id = data.get('comment_id')
+    user_id = data.get('user_id')
+
+    if not comment_id or not user_id:
+        return jsonify({'code': 400, 'msg': '参数缺失'}), 400
+
+    comment = Comment.query.get(comment_id)
+    if not comment:
+        return jsonify({'code': 404, 'msg': '评论不存在'}), 404
+
+    if str(comment.user_id) != str(user_id):
+        return jsonify({'code': 403, 'msg': '只能删除自己的评论'}), 403
+
+    comment_ids = _collect_comment_tree_ids(comment.id)
+
+    try:
+        CommentLike.query.filter(CommentLike.comment_id.in_(comment_ids)).delete(synchronize_session=False)
+
+        for cid in reversed(comment_ids):
+            Comment.query.filter_by(id=cid).delete()
+
+        db.session.commit()
+        return jsonify({'code': 200, 'msg': '评论已删除'})
+    except Exception:
+        db.session.rollback()
+        return jsonify({'code': 500, 'msg': '删除评论失败'}), 500
+
 
 @interaction_bp.route('/comment/like', methods=['POST'])
 @swag_from('../docs/interaction/like_comment.yml') # <--- 修改

@@ -7,11 +7,34 @@ from app.services.recall_service import recall_service
 
 recommend_bp = Blueprint('recommend', __name__, url_prefix='/api/recommend')
 
+
+def _get_latest_videos(limit=2):
+    return Video.query.filter_by(status=1, visibility='public')\
+        .order_by(Video.upload_time.desc())\
+        .limit(limit).all()
+
+
+def _prepend_latest_videos(videos, latest_videos, page, page_size):
+    if page != 1:
+        return videos
+
+    merged = []
+    seen_ids = set()
+
+    for video in latest_videos + videos:
+        if video.id in seen_ids:
+            continue
+        merged.append(video)
+        seen_ids.add(video.id)
+
+    return merged[:page_size]
+
 @recommend_bp.route('/home', methods=['GET'])
 def home_recommend():
     user_id = request.args.get('user_id', type=int)
     page = request.args.get('page', 1, type=int)
     page_size = request.args.get('page_size', 20, type=int)
+    latest_videos = _get_latest_videos(limit=2)
 
     # --- 动态分类逻辑 ---
     base_categories = ['科技', '生活', '娱乐', '教育', '电影', '音乐', '游戏', '体育']
@@ -37,7 +60,10 @@ def home_recommend():
 
     if not user_id:
         # Fallback for anonymous users
-        videos = Video.query.order_by(Video.views.desc()).limit(page_size).all()
+        hot_videos = Video.query.filter_by(status=1, visibility='public')\
+            .order_by(Video.views.desc())\
+            .limit(page_size + len(latest_videos)).all()
+        videos = _prepend_latest_videos(hot_videos, latest_videos, page, page_size)
         return jsonify({
             'list': [v.to_dict() for v in videos],
             'categories': final_categories,
@@ -89,7 +115,10 @@ def home_recommend():
 
     if not final_ids_to_fetch:
         # Fallback if recall model returns nothing or all candidates have been seen
-        videos = Video.query.order_by(Video.views.desc()).limit(page_size).all()
+        hot_videos = Video.query.filter_by(status=1, visibility='public')\
+            .order_by(Video.views.desc())\
+            .limit(page_size + len(latest_videos)).all()
+        videos = hot_videos
         source = 'hot_fallback'
     else:
         # 4. Fetch video details from the database
@@ -99,6 +128,8 @@ def home_recommend():
         # This ensures the final list respects the ranking from the recall model
         videos = [video_map[vid] for vid in final_ids_to_fetch if vid in video_map]
         source = 'recall_model'
+
+    videos = _prepend_latest_videos(videos, latest_videos, page, page_size)
 
     return jsonify({
         'list': [v.to_dict() for v in videos],

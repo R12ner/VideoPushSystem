@@ -89,7 +89,10 @@
                     </div>
                     <div>
                       <div class="ai-summary-title">AI 总结</div>
-                      <div class="ai-summary-subtitle">一键提炼视频重点，快速掌握内容脉络。</div>
+                      <div class="ai-summary-note">
+                        <span class="info-circle">i</span>
+                        <span>质量和准确性可能会有差异</span>
+                      </div>
                     </div>
                   </div>
                   <div class="ai-summary-actions">
@@ -174,10 +177,15 @@
                         {{ c.likes || '' }}
                       </div>
                       <div class="c-action-btn" @click="openReply(c.id, c.user.username)">回复</div>
-                      
-                      <el-dropdown v-if="isOwner" trigger="click" @command="handlePin(c.id)">
+
+                      <el-dropdown v-if="isOwner || canDeleteComment(c)" trigger="click" @command="(command) => handleCommentMenu(command, c)">
                         <span class="c-more-btn"><el-icon><MoreFilled /></el-icon></span>
-                        <template #dropdown><el-dropdown-menu><el-dropdown-item>{{ c.is_pinned ? '取消置顶' : '置顶评论' }}</el-dropdown-item></el-dropdown-menu></template>
+                        <template #dropdown>
+                          <el-dropdown-menu>
+                            <el-dropdown-item v-if="isOwner" command="pin">{{ c.is_pinned ? '取消置顶' : '置顶评论' }}</el-dropdown-item>
+                            <el-dropdown-item v-if="canDeleteComment(c)" command="delete">删除评论</el-dropdown-item>
+                          </el-dropdown-menu>
+                        </template>
                       </el-dropdown>
                     </div>
 
@@ -216,6 +224,14 @@
                                 {{ r.likes || '' }}
                               </div>
                               <div class="c-action-btn" @click="openReply(c.id, r.user.username)">回复</div>
+                              <el-dropdown v-if="canDeleteComment(r)" trigger="click" @command="(command) => handleCommentMenu(command, r)">
+                                <span class="c-more-btn"><el-icon><MoreFilled /></el-icon></span>
+                                <template #dropdown>
+                                  <el-dropdown-menu>
+                                    <el-dropdown-item command="delete">删除评论</el-dropdown-item>
+                                  </el-dropdown-menu>
+                                </template>
+                              </el-dropdown>
                             </div>
                           </div>
                         </div>
@@ -294,11 +310,11 @@ import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
 import { getVideoDetail, postAction, checkFavStatus, generateAiSummary } from '../api/video';
 import { getRelatedVideos } from '../api/recommend';
-import { getComments, sendComment, likeComment, pinComment, checkInteractionStatus } from '../api/interaction';
+import { getComments, sendComment, deleteComment, likeComment, pinComment, checkInteractionStatus } from '../api/interaction';
 import { toggleFollow, getChannelInfo } from '../api/user';
 import { getPlaylistVideos } from '../api/playlist'; 
 import { getVideosByIds } from '../api/video';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { Star, StarFilled, Sort, CaretBottom, CaretTop, MoreFilled, Top, VideoPlay, Edit, MagicStick, RefreshRight, Loading } from '@element-plus/icons-vue';
 import CustomVideoPlayer from '../components/CustomVideoPlayer.vue';
 import VideoEditModal from '../components/VideoEditModal.vue';
@@ -485,7 +501,43 @@ const loadComments = async () => { const uid = userStore.token ? userStore.userI
 const toggleSort = () => { sortType.value = sortType.value === 'hot' ? 'new' : 'hot'; loadComments(); };
 const postComment = async (parentId = null) => { if (!userStore.token) return ElMessage.warning('请先登录'); const content = parentId ? replyText.value : commentText.value; if (!content.trim()) return; await sendComment({ user_id: userStore.userInfo.id, video_id: video.value.id, content: content, parent_id: parentId }); commentText.value = ''; replyText.value = ''; replyTargetId.value = null; ElMessage.success('评论成功'); loadComments(); };
 const openReply = (rootId, targetUsername = null) => { if (!userStore.token) return ElMessage.warning('请先登录'); replyTargetId.value = rootId; if (targetUsername) { replyText.value = `回复 @${targetUsername} : `; } else { replyText.value = ''; } };
+const canDeleteComment = (comment) => userStore.token && String(userStore.userInfo.id) === String(comment.user.id);
 const handleLikeComment = async (comment) => { if (!userStore.token) return ElMessage.warning('请先登录'); try { const res = await likeComment(comment.id, userStore.userInfo.id); if (res.data.code === 200) { comment.likes = res.data.likes; comment.is_liked = (res.data.action === 'like'); } } catch (e) { console.error(e); } };
+const handleDeleteComment = async (comment) => {
+  if (!canDeleteComment(comment)) return;
+
+  try {
+    await ElMessageBox.confirm('删除后将无法恢复，是否继续？', '确认删除', {
+      confirmButtonText: '继续删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+
+    await ElMessageBox.confirm('请再次确认，你要删除这条评论吗？', '二次确认', {
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+
+    await deleteComment(comment.id, userStore.userInfo.id);
+    ElMessage.success('评论已删除');
+    loadComments();
+  } catch (e) {
+    if (e !== 'cancel' && e !== 'close') {
+      ElMessage.error('删除失败');
+    }
+  }
+};
+const handleCommentMenu = async (command, comment) => {
+  if (command === 'pin') {
+    await handlePin(comment.id);
+    return;
+  }
+
+  if (command === 'delete') {
+    await handleDeleteComment(comment);
+  }
+};
 const handlePin = async (commentId) => { try { await pinComment({ user_id: userStore.userInfo.id, comment_id: commentId }); ElMessage.success('操作成功'); loadComments(); } catch (e) { ElMessage.error('操作失败'); } };
 const toggleLike = async () => { if (!userStore.token) return ElMessage.warning('请先登录'); const isLiking = !interaction.value.is_like; const type = isLiking ? 'like' : 'unlike'; try { interaction.value.is_like = isLiking; if (isLiking) { currentLikes.value += 1; } else { currentLikes.value -= 1; } await postAction({ user_id: userStore.userInfo.id, video_id: video.value.id, type }); } catch (e) { interaction.value.is_like = !isLiking; currentLikes.value = isLiking ? currentLikes.value - 1 : currentLikes.value + 1; ElMessage.error('操作失败'); } };
 const toggleFav = async () => { if (!userStore.token) return ElMessage.warning('请先登录'); const type = interaction.value.is_fav ? 'unfavorite' : 'favorite'; try { await postAction({ user_id: userStore.userInfo.id, video_id: video.value.id, type }); interaction.value.is_fav = !interaction.value.is_fav; } catch (e) { ElMessage.error('操作失败'); } };
@@ -655,11 +707,28 @@ onBeforeUnmount(() => {
   letter-spacing: -0.01em;
 }
 
-.ai-summary-subtitle {
-  margin-top: 5px;
+.ai-summary-note {
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 13px;
   line-height: 1.5;
   color: #64748b;
+}
+
+.info-circle {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(100, 116, 139, 0.14);
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
 .ai-summary-actions {
@@ -779,6 +848,8 @@ onBeforeUnmount(() => {
 .c-action-btn { cursor: pointer; display: flex; align-items: center; gap: 4px; }
 .c-action-btn:hover { color: #0f0f0f; }
 .c-action-btn.is-liked { color: #065fd4; }
+.c-action-btn.danger { color: #b42318; }
+.c-action-btn.danger:hover { color: #7a271a; }
 .c-more-btn { transform: rotate(90deg); cursor: pointer; display: none; }
 .comment-item:hover .c-more-btn { display: inline-block; }
 .reply-input-box { margin-top: 10px; margin-bottom: 10px; }

@@ -17,6 +17,7 @@ import Channel from '../views/Channel.vue';
 import NotFound from '../views/NotFound.vue';
 
 // 后台管理页面
+import AdminWelcome from '../views/admin/AdminWelcome.vue';
 import Dashboard from '../views/admin/Dashboard.vue';
 import VideoManage from '../views/admin/VideoManage.vue';
 import UserManage from '../views/admin/UserManage.vue';
@@ -80,6 +81,8 @@ const routes = [
     component: AdminLayout,
     meta: { requiresAdmin: true }, // 需要管理员权限
     children: [
+      { path: '', redirect: '/admin/welcome' },
+      { path: 'welcome', component: AdminWelcome },
       { path: 'dashboard', component: Dashboard },
       { path: 'videos', component: VideoManage },
       { path: 'users', component: UserManage },

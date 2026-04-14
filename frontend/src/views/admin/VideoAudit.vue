@@ -1,71 +1,75 @@
 <template>
-  <div class="audit-container">
-    <el-page-header @back="$router.go(-1)" content="视频审核详情" style="margin-bottom: 20px;" />
+  <div class="audit-page">
+    <div class="page-top">
+      <button class="ghost-back" @click="$router.go(-1)">返回上一页</button>
+      <div>
+        <div class="page-title">视频审核详情</div>
+        <div class="page-subtitle">查看视频信息并执行通过、下架等审核操作</div>
+      </div>
+    </div>
 
     <div v-if="video" class="audit-layout">
-      <!-- 左侧：视频播放区 -->
-      <div class="video-section">
-        <div class="player-wrapper">
+      <section class="video-panel">
+        <div class="player-shell">
           <video :src="video.url" controls autoplay class="audit-player"></video>
         </div>
-      </div>
+      </section>
 
-      <!-- 右侧：审核控制台 -->
-      <div class="control-section">
+      <section class="side-panel">
         <el-card class="info-card">
           <template #header>
             <div class="card-header">
               <span>基本信息</span>
-              <el-tag :type="statusType(video.status)">{{ statusText(video.status) }}</el-tag>
+              <el-tag :type="statusType(video.status)" round>{{ statusText(video.status) }}</el-tag>
             </div>
           </template>
-          
-          <div class="info-item">
-            <span class="label">封面：</span>
+
+          <div class="info-item cover-row">
+            <span class="label">封面</span>
             <img :src="video.cover_url" class="cover-preview" />
           </div>
           <div class="info-item">
-            <span class="label">标题：</span>
-            <span class="value title">{{ video.title }}</span>
+            <span class="label">标题</span>
+            <span class="value strong">{{ video.title }}</span>
           </div>
           <div class="info-item">
-            <span class="label">作者：</span>
-            <span class="value">{{ video.uploader_name }} (ID: {{ video.uploader_id }})</span>
+            <span class="label">作者</span>
+            <span class="value">{{ video.uploader_name }}（ID: {{ video.uploader_id }}）</span>
           </div>
           <div class="info-item">
-            <span class="label">分类：</span>
-            <el-tag size="small">{{ video.category }}</el-tag>
+            <span class="label">分类</span>
+            <el-tag size="small" round>{{ video.category || '未分类' }}</el-tag>
           </div>
           <div class="info-item">
-            <span class="label">简介：</span>
-            <p class="value desc">{{ video.description || '无简介' }}</p>
+            <span class="label">简介</span>
+            <p class="value desc">{{ video.description || '暂无简介' }}</p>
           </div>
           <div class="info-item">
-            <span class="label">标签：</span>
-            <span class="value">{{ video.tags || '无标签' }}</span>
+            <span class="label">标签</span>
+            <span class="value">{{ video.tags || '暂无标签' }}</span>
           </div>
           <div class="info-item">
-            <span class="label">时间：</span>
+            <span class="label">上传时间</span>
             <span class="value">{{ video.upload_time }}</span>
           </div>
         </el-card>
 
         <el-card class="action-card">
           <template #header>
-            <div class="card-header">审核操作</div>
+            <div class="card-header">
+              <span>审核操作</span>
+            </div>
           </template>
-          
+
           <div class="action-buttons">
-            <el-button type="success" size="large" icon="Check" @click="handleAudit(1)">通过发布</el-button>
-            <el-button type="danger" size="large" icon="Close" @click="handleAudit(2)">拒绝/下架</el-button>
-          </div>
-          <div style="margin-top: 15px; text-align: center;">
-            <el-button type="info" link @click="$router.go(-1)">暂不处理，返回列表</el-button>
+            <el-button type="success" size="large" @click="handleAudit(1)">通过并发布</el-button>
+            <el-button type="danger" size="large" @click="handleAudit(2)">拒绝或下架</el-button>
+            <el-button size="large" @click="$router.go(-1)">暂不处理，返回列表</el-button>
           </div>
         </el-card>
-      </div>
+      </section>
     </div>
-    
+
     <el-skeleton v-else :rows="10" animated />
   </div>
 </template>
@@ -73,18 +77,15 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getVideoDetail } from '../../api/video'; // 复用获取详情接口
-import { auditVideo } from '../../api/admin';     // 引入审核接口
+import { getVideoDetail } from '../../api/video';
+import { auditVideo } from '../../api/admin';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Check, Close } from '@element-plus/icons-vue';
 
 const route = useRoute();
 const router = useRouter();
 const video = ref(null);
-
 const videoId = route.params.id;
 
-// 加载视频详情
 const loadData = async () => {
   try {
     const res = await getVideoDetail(videoId);
@@ -92,39 +93,37 @@ const loadData = async () => {
       video.value = res.data.data;
     }
   } catch (error) {
-    console.error(error);
     ElMessage.error('无法加载视频信息，可能已被删除');
   }
 };
 
-// 提交审核结果
 const handleAudit = (status) => {
-  const actionText = status === 1 ? '通过' : '拒绝/下架';
-  
-  ElMessageBox.confirm(`确定要${actionText}该视频吗？`, '审核确认', {
-    confirmButtonText: '确定',
+  const actionText = status === 1 ? '通过并发布' : '拒绝或下架';
+
+  ElMessageBox.confirm(`确定要${actionText}这条视频吗？`, '审核确认', {
+    confirmButtonText: '确认',
     cancelButtonText: '取消',
     type: status === 1 ? 'success' : 'warning'
   }).then(async () => {
     try {
-      await auditVideo({ id: videoId, status: status });
-      ElMessage.success('操作成功');
-      router.push('/admin/videos'); // 审核完跳回列表
-    } catch (e) {
-      ElMessage.error('操作失败');
+      await auditVideo({ id: videoId, status });
+      ElMessage.success('审核操作成功');
+      router.push('/admin/videos');
+    } catch (error) {
+      ElMessage.error('审核操作失败');
     }
-  });
+  }).catch(() => {});
 };
 
-// 状态辅助函数
-const statusType = (s) => {
-  if (s === 0) return 'warning';
-  if (s === 1) return 'success';
+const statusType = (status) => {
+  if (status === 0) return 'warning';
+  if (status === 1) return 'success';
   return 'danger';
 };
-const statusText = (s) => {
-  if (s === 0) return '待审核';
-  if (s === 1) return '已发布';
+
+const statusText = (status) => {
+  if (status === 0) return '待审核';
+  if (status === 1) return '已发布';
   return '已下架';
 };
 
@@ -132,26 +131,145 @@ onMounted(() => loadData());
 </script>
 
 <style scoped>
-.audit-container { padding: 20px; }
-.audit-layout { display: flex; gap: 20px; height: calc(100vh - 120px); }
+.audit-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
 
-/* 左侧播放器 */
-.video-section { flex: 2; background: black; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.player-wrapper { width: 100%; height: 100%; }
-.audit-player { width: 100%; height: 100%; object-fit: contain; }
+.page-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
 
-/* 右侧信息栏 */
-.control-section { flex: 1; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
-.info-card, .action-card { border-radius: 8px; }
-.card-header { font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+.ghost-back {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.84);
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
 
-.info-item { margin-bottom: 12px; display: flex; font-size: 14px; }
-.label { width: 60px; color: #909399; flex-shrink: 0; }
-.value { color: #303133; flex: 1; word-break: break-all; }
-.value.title { font-weight: bold; font-size: 16px; }
-.value.desc { color: #606266; line-height: 1.5; margin: 0; white-space: pre-wrap; }
-.cover-preview { width: 120px; height: 68px; object-fit: cover; border-radius: 4px; border: 1px solid #eee; }
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+}
 
-.action-buttons { display: flex; flex-direction: column; gap: 15px; padding: 10px 0; }
-.action-buttons .el-button { margin-left: 0; height: 50px; font-size: 16px; }
+.page-subtitle {
+  margin-top: 4px;
+  color: #667085;
+  font-size: 13px;
+}
+
+.audit-layout {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.video-panel {
+  min-height: 640px;
+  border-radius: 28px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #09090b, #1f2937);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
+}
+
+.player-shell {
+  width: 100%;
+  height: 100%;
+}
+
+.audit-player {
+  width: 100%;
+  height: 100%;
+  min-height: 640px;
+  object-fit: contain;
+}
+
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  color: #111827;
+}
+
+.info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+
+.cover-row {
+  align-items: center;
+}
+
+.label {
+  width: 72px;
+  flex-shrink: 0;
+  color: #667085;
+  font-weight: 600;
+}
+
+.value {
+  flex: 1;
+  color: #344054;
+  word-break: break-word;
+}
+
+.value.strong {
+  font-weight: 700;
+  color: #111827;
+}
+
+.desc {
+  margin: 0;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.cover-preview {
+  width: 150px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 16px;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.action-buttons .el-button {
+  margin-left: 0;
+  height: 46px;
+}
+
+@media (max-width: 1100px) {
+  .audit-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .video-panel,
+  .audit-player {
+    min-height: 420px;
+  }
+}
 </style>
