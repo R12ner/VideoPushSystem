@@ -294,7 +294,7 @@ onMounted(async () => {
   if (route.query.id) {
     const editId = route.query.id;
     try {
-      const res = await getVideoDetail(editId);
+      const res = await getVideoDetail(editId, userStore.userInfo.id);
       if (res.data.code === 200) {
         const v = res.data.data;
         videoId.value = v.id;

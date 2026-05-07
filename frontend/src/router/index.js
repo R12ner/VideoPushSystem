@@ -19,6 +19,8 @@ import NotFound from '../views/NotFound.vue';
 // 后台管理页面
 import AdminWelcome from '../views/admin/AdminWelcome.vue';
 import Dashboard from '../views/admin/Dashboard.vue';
+import TwoTowerAnalysis from '../views/admin/TwoTowerAnalysis.vue';
+import OrderManage from '../views/admin/OrderManage.vue';
 import VideoManage from '../views/admin/VideoManage.vue';
 import UserManage from '../views/admin/UserManage.vue';
 import VideoAudit from '../views/admin/VideoAudit.vue';
@@ -84,6 +86,8 @@ const routes = [
       { path: '', redirect: '/admin/welcome' },
       { path: 'welcome', component: AdminWelcome },
       { path: 'dashboard', component: Dashboard },
+      { path: 'two-tower', component: TwoTowerAnalysis },
+      { path: 'orders', component: OrderManage },
       { path: 'videos', component: VideoManage },
       { path: 'users', component: UserManage },
       { path: 'audit/:id', component: VideoAudit } 

@@ -10,10 +10,11 @@ export function getVideoList(params) {
 }
 
 // 获取详情
-export function getVideoDetail(id) {
+export function getVideoDetail(id, userId) {
   return request({
     url: `/video/${id}`,
-    method: 'get'
+    method: 'get',
+    params: userId ? { user_id: userId } : undefined
   });
 }
 

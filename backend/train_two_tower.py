@@ -1,4 +1,5 @@
 import os
+import json
 import numpy as np
 import pandas as pd
 import torch
@@ -14,6 +15,7 @@ import pickle
 DATA_DIR = "./data/ml-latest-small"
 MODEL_SAVE_PATH = "./app/services/model_data"
 os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
+METRICS_SAVE_PATH = os.path.join(MODEL_SAVE_PATH, "two_tower_metrics.json")
 
 EMBEDDING_DIM = 64
 BATCH_SIZE = 256
@@ -139,6 +141,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = TwoTowerModel(n_users, n_items, EMBEDDING_DIM).to(device)
     optimizer = optim.Adam(model.parameters(), lr=LR)
+    metrics_history = []
     
     print("Start Training...")
     for epoch in range(EPOCHS):
@@ -160,7 +163,8 @@ if __name__ == "__main__":
             optimizer.step()
             total_loss += loss.item()
             
-        print(f"Epoch {epoch+1}, Loss: {total_loss/len(train_loader):.4f}")
+        avg_loss = total_loss / len(train_loader)
+        print(f"Epoch {epoch+1}, Loss: {avg_loss:.4f}")
         
         model.eval()
         all_item_ids = torch.arange(n_items).to(device)
@@ -173,6 +177,13 @@ if __name__ == "__main__":
             u_vec = model.user_tower(hist)
             recall, ndcg = calculate_metrics(u_vec, target, all_item_vecs, k=10)
             print(f"Val Recall@10: {recall:.4f}, NDCG@10: {ndcg:.4f}")
+
+        metrics_history.append({
+            "epoch": epoch + 1,
+            "loss": round(float(avg_loss), 6),
+            "recall_at_10": round(float(recall), 6),
+            "ndcg_at_10": round(float(ndcg), 6)
+        })
 
     # --- 6. 导出模型与数据 ---
     print("Exporting...")
@@ -188,6 +199,25 @@ if __name__ == "__main__":
     
     with open(os.path.join(MODEL_SAVE_PATH, "recall_data.pkl"), "wb") as f:
         pickle.dump(export_data, f)
+
+    metrics_payload = {
+        "model_name": "Two-Tower Recall",
+        "dataset": "MovieLens ml-latest-small",
+        "trained_at": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "config": {
+            "embedding_dim": EMBEDDING_DIM,
+            "batch_size": BATCH_SIZE,
+            "epochs": EPOCHS,
+            "learning_rate": LR,
+            "sequence_length": SEQ_LEN,
+            "num_users": int(n_users - 1),
+            "num_items": int(n_items - 1)
+        },
+        "history": metrics_history
+    }
+
+    with open(METRICS_SAVE_PATH, "w", encoding="utf-8") as f:
+        json.dump(metrics_payload, f, ensure_ascii=False, indent=2)
         
     torch.save(model.state_dict(), os.path.join(MODEL_SAVE_PATH, "two_tower_model.pth"))
     print(f"Model and data exported to {MODEL_SAVE_PATH}")

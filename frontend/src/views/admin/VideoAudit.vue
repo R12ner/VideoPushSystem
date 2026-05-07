@@ -80,15 +80,17 @@ import { useRoute, useRouter } from 'vue-router';
 import { getVideoDetail } from '../../api/video';
 import { auditVideo } from '../../api/admin';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useUserStore } from '../../store/user';
 
 const route = useRoute();
 const router = useRouter();
+const userStore = useUserStore();
 const video = ref(null);
 const videoId = route.params.id;
 
 const loadData = async () => {
   try {
-    const res = await getVideoDetail(videoId);
+    const res = await getVideoDetail(videoId, userStore.userInfo.id);
     if (res.data.code === 200) {
       video.value = res.data.data;
     }

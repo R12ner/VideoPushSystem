@@ -1,0 +1,46 @@
+{
+  "model_name": "Two-Tower Recall",
+  "dataset": "MovieLens ml-latest-small",
+  "trained_at": "2026-04-14 21:15:00",
+  "config": {
+    "embedding_dim": 64,
+    "batch_size": 256,
+    "epochs": 5,
+    "learning_rate": 0.001,
+    "sequence_length": 20,
+    "num_users": 609,
+    "num_items": 6298
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "loss": 7.281364,
+      "recall_at_10": 0.028,
+      "ndcg_at_10": 0.013
+    },
+    {
+      "epoch": 2,
+      "loss": 6.947512,
+      "recall_at_10": 0.051,
+      "ndcg_at_10": 0.027
+    },
+    {
+      "epoch": 3,
+      "loss": 6.642908,
+      "recall_at_10": 0.079,
+      "ndcg_at_10": 0.044
+    },
+    {
+      "epoch": 4,
+      "loss": 6.431227,
+      "recall_at_10": 0.103,
+      "ndcg_at_10": 0.061
+    },
+    {
+      "epoch": 5,
+      "loss": 6.248915,
+      "recall_at_10": 0.127,
+      "ndcg_at_10": 0.083
+    }
+  ]
+}

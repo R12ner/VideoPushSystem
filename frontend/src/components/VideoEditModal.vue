@@ -190,7 +190,7 @@ const open = async (id) => {
   loadingData.value = true;
   
   try {
-    const res = await getVideoDetail(id);
+    const res = await getVideoDetail(id, userStore.userInfo.id);
     if (res.data.code === 200) {
       const v = res.data.data;
       form.title = v.title;

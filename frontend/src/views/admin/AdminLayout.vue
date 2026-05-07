@@ -12,6 +12,8 @@
         <nav class="nav-tabs">
           <router-link to="/admin/welcome" class="nav-tab" active-class="active">总览</router-link>
           <router-link to="/admin/dashboard" class="nav-tab" active-class="active">统计</router-link>
+          <router-link to="/admin/two-tower" class="nav-tab" active-class="active">模型分析</router-link>
+          <router-link to="/admin/orders" class="nav-tab" active-class="active">订单管理</router-link>
           <router-link to="/admin/videos" class="nav-tab" active-class="active">视频管理</router-link>
           <router-link to="/admin/users" class="nav-tab" active-class="active">用户管理</router-link>
         </nav>
@@ -21,14 +23,6 @@
     </header>
 
     <main class="admin-main">
-      <section class="hero-panel">
-        <div>
-          <p class="hero-eyebrow">管理员中心</p>
-          <h1 class="hero-title">内容审核、用户治理与运营概览</h1>
-          <p class="hero-desc">统一查看平台关键数据，快速处理视频审核、用户封禁与密码重置申请。</p>
-        </div>
-      </section>
-
       <section class="page-wrapper">
         <router-view />
       </section>
@@ -137,41 +131,7 @@
 .admin-main {
   max-width: 1240px;
   margin: 0 auto;
-  padding: 28px 24px 40px;
-}
-
-.hero-panel {
-  padding: 28px 30px;
-  border-radius: 28px;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(243, 246, 250, 0.94)),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(243, 246, 249, 0.98));
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  box-shadow:
-    0 18px 38px rgba(15, 23, 42, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.78);
-}
-
-.hero-eyebrow {
-  margin: 0 0 8px;
-  color: #667085;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.hero-title {
-  margin: 0;
-  font-size: 34px;
-  line-height: 1.15;
-  letter-spacing: -0.04em;
-}
-
-.hero-desc {
-  margin: 12px 0 0;
-  max-width: 720px;
-  color: #667085;
-  font-size: 15px;
-  line-height: 1.7;
+  padding: 24px 24px 40px;
 }
 
 .page-wrapper {
@@ -190,10 +150,6 @@
 
   .nav-tabs {
     overflow-x: auto;
-  }
-
-  .hero-title {
-    font-size: 28px;
   }
 }
 </style>
