@@ -87,6 +87,14 @@ const router = useRouter();
 const userStore = useUserStore();
 const video = ref(null);
 const videoId = route.params.id;
+const returnStatus = route.query.status ?? sessionStorage.getItem('adminVideoManageStatus') ?? '';
+
+const returnToVideoList = () => {
+  router.push({
+    path: '/admin/videos',
+    query: returnStatus ? { status: returnStatus } : {}
+  });
+};
 
 const loadData = async () => {
   try {
@@ -110,7 +118,7 @@ const handleAudit = (status) => {
     try {
       await auditVideo({ id: videoId, status });
       ElMessage.success('审核操作成功');
-      router.push('/admin/videos');
+      returnToVideoList();
     } catch (error) {
       ElMessage.error('审核操作失败');
     }

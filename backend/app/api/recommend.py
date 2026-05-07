@@ -29,6 +29,66 @@ def _prepend_latest_videos(videos, latest_videos, page, page_size):
 
     return merged[:page_size]
 
+
+def _get_latest_viewed_video(user_id):
+    if not user_id:
+        return None
+
+    return db.session.query(Video)\
+        .join(ActionLog, ActionLog.video_id == Video.id)\
+        .filter(ActionLog.user_id == user_id, ActionLog.action_type == 'view')\
+        .order_by(ActionLog.timestamp.desc())\
+        .first()
+
+
+def _pick_recent_category_video(latest_viewed, excluded_ids=None):
+    if not latest_viewed or not latest_viewed.category:
+        return None
+
+    excluded_ids = set(excluded_ids or [])
+    blocked_ids = excluded_ids | {latest_viewed.id}
+    if not blocked_ids:
+        return None
+
+    query = Video.query.filter_by(
+        status=1,
+        visibility='public',
+        category=latest_viewed.category
+    )
+
+    query = query.filter(~Video.id.in_(blocked_ids))
+
+    return query.order_by(Video.views.desc(), Video.upload_time.desc()).first()
+
+
+def _place_recent_category_video_first(videos, user_id, latest_videos, page):
+    if page != 1 or not user_id:
+        return videos
+
+    latest_viewed = _get_latest_viewed_video(user_id)
+    if not latest_viewed or not latest_viewed.category:
+        return videos
+
+    latest_ids = {v.id for v in latest_videos}
+    preferred_video = next(
+        (
+            v for v in videos
+            if v.category == latest_viewed.category
+            and v.id != latest_viewed.id
+            and v.id not in latest_ids
+        ),
+        None
+    )
+
+    if not preferred_video:
+        excluded_ids = latest_ids | {v.id for v in videos}
+        preferred_video = _pick_recent_category_video(latest_viewed, excluded_ids)
+
+    if not preferred_video:
+        return videos
+
+    return [preferred_video] + [v for v in videos if v.id != preferred_video.id]
+
 @recommend_bp.route('/home', methods=['GET'])
 def home_recommend():
     user_id = request.args.get('user_id', type=int)
@@ -129,6 +189,7 @@ def home_recommend():
         videos = [video_map[vid] for vid in final_ids_to_fetch if vid in video_map]
         source = 'recall_model'
 
+    videos = _place_recent_category_video_first(videos, user_id, latest_videos, page)
     videos = _prepend_latest_videos(videos, latest_videos, page, page_size)
 
     return jsonify({

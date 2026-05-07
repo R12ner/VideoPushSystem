@@ -11,7 +11,7 @@
           <el-select
             v-model="filterStatus"
             placeholder="按状态筛选"
-            @change="loadData"
+            @change="handleStatusChange"
             size="small"
             class="status-filter"
           >
@@ -82,17 +82,36 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { getAdminVideos, auditVideo, deleteVideoAdmin } from '../../api/admin';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
+const STATUS_CACHE_KEY = 'adminVideoManageStatus';
 const router = useRouter();
+const route = useRoute();
 const tableData = ref([]);
-const filterStatus = ref('');
+const filterStatus = ref(route.query.status ?? sessionStorage.getItem(STATUS_CACHE_KEY) ?? '');
 
 const loadData = async () => {
   const res = await getAdminVideos({ status: filterStatus.value });
   tableData.value = res.data.data || [];
+};
+
+const rememberStatus = () => {
+  if (filterStatus.value) {
+    sessionStorage.setItem(STATUS_CACHE_KEY, filterStatus.value);
+  } else {
+    sessionStorage.removeItem(STATUS_CACHE_KEY);
+  }
+};
+
+const handleStatusChange = () => {
+  rememberStatus();
+  router.replace({
+    path: '/admin/videos',
+    query: filterStatus.value ? { status: filterStatus.value } : {}
+  });
+  loadData();
 };
 
 const handleAudit = async (row, status) => {
@@ -114,7 +133,11 @@ const handleDelete = (row) => {
 };
 
 const goToAudit = (id) => {
-  router.push(`/admin/audit/${id}`);
+  rememberStatus();
+  router.push({
+    path: `/admin/audit/${id}`,
+    query: filterStatus.value ? { status: filterStatus.value } : {}
+  });
 };
 
 const openPreview = (row) => {
@@ -122,7 +145,10 @@ const openPreview = (row) => {
   window.open(url, '_blank');
 };
 
-onMounted(() => loadData());
+onMounted(() => {
+  rememberStatus();
+  loadData();
+});
 </script>
 
 <style scoped>

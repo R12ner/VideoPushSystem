@@ -346,4 +346,4 @@ visibility = public（公开）
 - `.env` 中包含密钥，建议只保留 `.env.example` 并在部署时注入真实值。  
 - 支付宝私钥、邮箱密码等敏感数据不要提交到 Git。  
 - 线上部署时建议使用反向代理（Nginx/1Panel）并开启 HTTPS。
-沙盒账号iklgec5101@sandbox.com 密码111111
+沙盒账号iklgec5101@sandbox.com
